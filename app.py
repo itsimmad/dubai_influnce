@@ -1,4 +1,5 @@
 import streamlit as st
+st.set_page_config(layout="wide")
 import plotly.graph_objects as go
 import plotly.express as px
 from datetime import datetime, timedelta
@@ -161,6 +162,58 @@ def load_custom_css():
         padding: 1.5rem;
         border: 1px solid rgba(255,255,255,0.2);
     }
+    /* Make tables and containers scrollable on small screens */
+    .css-1l269bu, .css-1d391kg, .stDataFrame { overflow-x: auto; }
+    /* Responsive padding and font size */
+    @media (max-width: 600px) {
+        .block-container { padding: 0.5rem 0.2rem !important; }
+        body, .stTextInput input, .stButton button, .stSelectbox label, .stMarkdown { font-size: 1.08rem !important; }
+        .stDataFrame { font-size: 0.95rem !important; }
+    }
+    /* Responsive table for influencer box */
+    .premium-card .responsive-table {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        display: block;
+    }
+    .premium-card table {
+        border-collapse: collapse;
+        width: 100%;
+        font-size: 1rem;
+        background: none;
+    }
+    .premium-card th, .premium-card td {
+        padding: 0.6rem 0.5rem;
+        text-align: left;
+        white-space: nowrap;
+    }
+    .premium-card th {
+        background: rgba(255,255,255,0.08);
+    }
+    .premium-card tr:nth-child(even) {
+        background: rgba(255,255,255,0.04);
+    }
+    @media (max-width: 700px) {
+        .premium-card table {
+            font-size: 0.85rem;
+            /* min-width removed */
+        }
+        .premium-card th, .premium-card td {
+            padding: 0.3rem 0.2rem;
+        }
+    }
+    @media (max-width: 480px) {
+        .premium-card table {
+            font-size: 0.72rem;
+            /* min-width removed */
+        }
+        .premium-card th, .premium-card td {
+            padding: 0.12rem 0.05rem;
+            white-space: normal; /* Allow wrapping */
+            word-break: break-word;
+        }
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -293,10 +346,28 @@ INFLUENCERS = {
 
 # --- Outreach Message Generator ---
 def generate_outreach_message(brief_md, influencer_name):
-    intro = f"Dear {influencer_name},\n\nI hope this message finds you well! My name is [Your Name], and I represent a leading Dubai-based agency. We are excited to invite you to collaborate on an upcoming campaign."
-    deliverables = "\n\n**Campaign Deliverables:**\n- As per the brief below, we are looking for your unique touch and creativity.\n- We believe your audience aligns perfectly with our campaign goals."
-    closing = "\n\nIf you are interested, please let us know your availability and rates. We look forward to working with you!\n\nBest regards,\n[Your Name]\n[Your Agency]"
-    return f"{intro}\n\n{brief_md}\n{deliverables}\n{closing}"
+    # Remove Markdown formatting from the brief
+    import re
+    brief_plain = re.sub(r'\*\*|[#>`\-]', '', brief_md)  # Remove bold, headers, etc.
+    brief_plain = re.sub(r'\n{2,}', '\n', brief_plain)   # Remove extra newlines
+
+    return f"""Subject: Collaboration Opportunity with Dubai Influencer Pro
+
+Hi {influencer_name},
+
+I hope this email finds you well.
+
+I'm reaching out from Dubai Influencer Pro regarding an upcoming campaign that we believe aligns perfectly with your audience and content style.
+
+Campaign Details:
+{brief_plain.strip()}
+
+If you're interested, please let us know your availability and your rates. We look forward to the possibility of working together.
+
+Best regards,
+[Your Name]
+Dubai Influencer Pro
+"""
 
 # ---- Helper Functions ----
 def get_tier_by_budget(budget, platform):
@@ -497,177 +568,225 @@ def main():
             col1, col2 = st.columns(2)
             
             with col1:
-                budget = st.number_input("💰 Campaign Budget (AED)", min_value=1000, step=1000, value=10000, key="budget_input")
-                goal = st.selectbox("🎯 Campaign Goal", CAMPAIGN_GOALS, key="goal_input")
-                industry = st.selectbox("🏢 Industry/Niche", INDUSTRIES, key="industry_input")
+                budget = st.number_input(
+                    "💰 Campaign Budget (AED)",
+                    min_value=1000,
+                    step=1000,
+                    value=None,
+                    key="budget_input",
+                    placeholder="Enter budget"
+                )
+                goal = st.selectbox(
+                    "🎯 Campaign Goal",
+                    [""] + CAMPAIGN_GOALS,
+                    index=0,
+                    key="goal_input",
+                    format_func=lambda x: x if x else "Select a goal"
+                )
+                industry = st.selectbox(
+                    "🏢 Industry/Niche",
+                    [""] + INDUSTRIES,
+                    index=0,
+                    key="industry_input",
+                    format_func=lambda x: x if x else "Select an industry"
+                )
             
             with col2:
-                platform = st.selectbox("📱 Primary Platform", PLATFORMS, key="platform_input")
-                content_type = st.selectbox("🎬 Content Type", CONTENT_TYPES, key="content_type_input")
-                audience = st.text_input("👥 Target Audience (Optional)", placeholder="e.g., Luxury consumers, Tech professionals", key="audience_input")
+                platform = st.selectbox(
+                    "📱 Primary Platform",
+                    [""] + PLATFORMS,
+                    index=0,
+                    key="platform_input",
+                    format_func=lambda x: x if x else "Select a platform"
+                )
+                content_type = st.selectbox(
+                    "🎬 Content Type",
+                    [""] + CONTENT_TYPES,
+                    index=0,
+                    key="content_type_input",
+                    format_func=lambda x: x if x else "Select content type"
+                )
+                audience = st.text_input(
+                    "👥 Target Audience (Optional)",
+                    value="",
+                    placeholder="e.g., Luxury consumers, Tech professionals",
+                    key="audience_input"
+                )
             
             submitted = st.form_submit_button("🚀 Generate Premium Analysis", use_container_width=True)
         
         st.markdown('</div>', unsafe_allow_html=True)
     
     if submitted:
-        # Influencer Tier Analysis
-        tier, tier_data = get_tier_by_budget(budget, platform)
-        
-        st.markdown('<div class="premium-card">', unsafe_allow_html=True)
-        st.header("🤝 Influencer Tier Analysis")
-        
-        col1, col2, col3, col4 = st.columns(4)
-        
-        with col1:
-            st.markdown(f"""
-            <div class="metric-card">
-                <h3>Recommended Tier</h3>
-                <div class="tier-badge tier-{tier.lower()}">{tier}</div>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        with col2:
-            st.markdown(f"""
-            <div class="metric-card">
-                <h3>Estimated Rate</h3>
-                <p style="font-size: 1.5rem; font-weight: bold;">AED {tier_data['rate']:,}</p>
-                <small>per {content_type}</small>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        with col3:
-            st.markdown(f"""
-            <div class="metric-card">
-                <h3>Engagement Rate</h3>
-                <p style="font-size: 1.5rem; font-weight: bold;">{tier_data['engagement']}</p>
-                <small>expected range</small>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        with col4:
-            st.markdown(f"""
-            <div class="metric-card">
-                <h3>Reach Potential</h3>
-                <p style="font-size: 1.5rem; font-weight: bold;">{tier_data['reach']}</p>
-                <small>per post</small>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        st.markdown('</div>', unsafe_allow_html=True)
-        
-        # ROI Calculator
-        roi_data = create_roi_calculator(budget, platform, content_type)
-        
-        st.markdown('<div class="premium-card">', unsafe_allow_html=True)
-        st.header("📈 ROI Projection")
-        
-        col1, col2, col3, col4 = st.columns(4)
-        
-        with col1:
-            st.metric("Estimated Reach", f"{roi_data['reach']:,.0f}")
-        with col2:
-            st.metric("Expected Engagement", f"{roi_data['engagement']:,.0f}")
-        with col3:
-            st.metric("Potential Clicks", f"{roi_data['clicks']:,.0f}")
-        with col4:
-            st.metric("Estimated Conversions", f"{roi_data['conversions']:,.0f}")
-        
-        st.markdown('</div>', unsafe_allow_html=True)
-        
-        # Premium Campaign Brief
-        inputs = {
-            'goal': goal,
-            'industry': industry,
-            'platform': platform,
-            'content_type': content_type,
-            'audience': audience
-        }
-        
-        brief_md = generate_premium_brief(inputs)
-        
-        st.markdown('<div class="brief-section">', unsafe_allow_html=True)
-        st.header("📋 Premium Campaign Brief")
-        st.markdown(brief_md)
-        
-        # Copy and Download buttons
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("📋 Copy Brief to Clipboard", use_container_width=True):
-                st.success("Brief copied to clipboard!")
-        
-        with col2:
-            if st.button("📥 Download as PDF", use_container_width=True):
-                st.info("PDF download feature requires wkhtmltopdf installation")
-        
-        st.markdown('</div>', unsafe_allow_html=True)
-    
-    # Creator Rate Estimator
-    st.markdown('<div class="premium-card">', unsafe_allow_html=True)
-    st.header("💸 Creator Rate Estimator")
-    
-    with st.expander("Calculate your worth as a creator", expanded=False):
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            creator_platform = st.selectbox("Platform", PLATFORMS, key='creator_platform_estimator')
-        with col2:
-            creator_followers = st.number_input("Follower Count", min_value=1000, step=1000, value=10000, key='creator_followers_estimator')
-        with col3:
-            creator_niche = st.selectbox("Niche", INDUSTRIES, key='creator_niche_estimator')
-        
-        if st.button("Calculate My Rate", use_container_width=True, key='calculate_rate_btn'):
-            creator_tier = get_tier_by_followers(creator_followers)
-            rate_data = RATE_CARD[creator_platform][creator_tier]
+        # Validate required fields
+        if (
+            budget is None or
+            not goal or
+            not industry or
+            not platform or
+            not content_type
+        ):
+            st.error("Please fill in all required fields before generating the analysis.")
+        else:
+            # Store campaign config in session state
+            st.session_state['campaign_config'] = {
+                'budget': budget,
+                'goal': goal,
+                'industry': industry,
+                'platform': platform,
+                'content_type': content_type,
+                'audience': audience
+            }
+            # Influencer Tier Analysis
+            tier, tier_data = get_tier_by_budget(budget, platform)
             
-            st.success(f"""
-            **Your Profile Analysis:**
-            - **Tier:** {creator_tier}
-            - **Suggested Rate:** AED {rate_data['rate']:,} per post
-            - **Expected Engagement:** {rate_data['engagement']}
-            - **Reach Potential:** {rate_data['reach']}
-            """)
-    
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-        # After platform is selected, show campaign types, influencer suggestions, and outreach message generator
-    if platform:
-        st.markdown(f"""
-        <div class="premium-card">
-        <h3>📱 Top Campaign Types for {platform}</h3>
-        <ul>
-        {''.join([f'<li>✨ {ct}</li>' for ct in PLATFORM_CAMPAIGN_TYPES.get(platform, [])])}
-        </ul>
-        </div>
-        """, unsafe_allow_html=True)
+            st.markdown('<div class="premium-card">', unsafe_allow_html=True)
+            st.header("🤝 Influencer Tier Analysis")
+            
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                st.markdown(f"""
+                <div class="metric-card">
+                    <h3>Recommended Tier</h3>
+                    <div class="tier-badge tier-{tier.lower()}">{tier}</div>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            with col2:
+                st.markdown(f"""
+                <div class="metric-card">
+                    <h3>Estimated Rate</h3>
+                    <p style="font-size: 1.5rem; font-weight: bold;">AED {tier_data['rate']:,}</p>
+                    <small>per {content_type}</small>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            with col3:
+                st.markdown(f"""
+                <div class="metric-card">
+                    <h3>Engagement Rate</h3>
+                    <p style="font-size: 1.5rem; font-weight: bold;">{tier_data['engagement']}</p>
+                    <small>expected range</small>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            with col4:
+                st.markdown(f"""
+                <div class="metric-card">
+                    <h3>Reach Potential</h3>
+                    <p style="font-size: 1.5rem; font-weight: bold;">{tier_data['reach']}</p>
+                    <small>per post</small>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+            # ROI Calculator
+            roi_data = create_roi_calculator(budget, platform, content_type)
+            
+            st.markdown('<div class="premium-card">', unsafe_allow_html=True)
+            st.header("📈 ROI Projection")
+            
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                st.metric("Estimated Reach", f"{roi_data['reach']:,.0f}")
+            with col2:
+                st.metric("Expected Engagement", f"{roi_data['engagement']:,.0f}")
+            with col3:
+                st.metric("Potential Clicks", f"{roi_data['clicks']:,.0f}")
+            with col4:
+                st.metric("Estimated Conversions", f"{roi_data['conversions']:,.0f}")
+            
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+            # Premium Campaign Brief
+            inputs = {
+                'goal': goal,
+                'industry': industry,
+                'platform': platform,
+                'content_type': content_type,
+                'audience': audience
+            }
+            
+            brief_md = generate_premium_brief(inputs)
+            
+            st.markdown('<div class="brief-section">', unsafe_allow_html=True)
+            st.header("📋 Premium Campaign Brief")
+            st.markdown(brief_md)
+            
+            # Copy and Download buttons
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("📋 Copy Brief to Clipboard", use_container_width=True):
+                    st.success("Brief copied to clipboard!")
+            
+            with col2:
+                if st.button("📥 Download as PDF", use_container_width=True):
+                    st.info("PDF download feature requires wkhtmltopdf installation")
+            
+            st.markdown('</div>', unsafe_allow_html=True)
         
-        st.markdown(f"""
-        <div class="premium-card">
-        <h3>👥 Suggested Influencers for {platform}</h3>
-        <table style='width:100%;color:#fff;'>
-        <tr><th>Name</th><th>Handle</th><th>Followers</th><th>Niche</th><th>Tier</th><th>Link</th></tr>
-        {''.join([
-            f"<tr>"
-            f"<td>{inf['name']}</td>"
-            f"<td>{inf['handle']}</td>"
-            f"<td>{inf['followers']}</td>"
-            f"<td>{inf['niche']}</td>"
-            f"<td><span class='tier-badge tier-{inf['tier'].lower()}'>{inf['tier']}</span></td>"
-            f"<td><a href='{inf['link']}' target='_blank'>Profile</a></td>"
-            f"</tr>" for inf in INFLUENCERS.get(platform, [])
-        ])}
-        </table>
-        </div>
-        """, unsafe_allow_html=True)
+        # Creator Rate Estimator
+        st.markdown('<div class="premium-card">', unsafe_allow_html=True)
+        st.header("💸 Creator Rate Estimator")
+        
+        with st.expander("Calculate your worth as a creator", expanded=False):
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                creator_platform = st.selectbox("Platform", PLATFORMS, key='creator_platform_estimator')
+            with col2:
+                creator_followers = st.number_input("Follower Count", min_value=1000, step=1000, value=10000, key='creator_followers_estimator')
+            with col3:
+                creator_niche = st.selectbox("Niche", INDUSTRIES, key='creator_niche_estimator')
+            
+            if st.button("Calculate My Rate", use_container_width=True, key='calculate_rate_btn'):
+                creator_tier = get_tier_by_followers(creator_followers)
+                rate_data = RATE_CARD[creator_platform][creator_tier]
+                
+                st.success(f"""
+                **Your Profile Analysis:**
+                - **Tier:** {creator_tier}
+                - **Suggested Rate:** AED {rate_data['rate']:,} per post
+                - **Expected Engagement:** {rate_data['engagement']}
+                - **Reach Potential:** {rate_data['reach']}
+                """)
+        
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        # Suggested Influencer Box (responsive table)
+        if platform:
+            st.markdown(f"""
+            <div class="premium-card">
+            <h3>👥 Suggested Influencers for {platform}</h3>
+            <div class="responsive-table">
+            <table>
+            <tr><th>Name</th><th>Handle</th><th>Followers</th><th>Niche</th><th>Tier</th><th>Link</th></tr>
+            {''.join([
+                f"<tr>"
+                f"<td>{inf['name']}</td>"
+                f"<td>{inf['handle']}</td>"
+                f"<td>{inf['followers']}</td>"
+                f"<td>{inf['niche']}</td>"
+                f"<td><span class='tier-badge tier-{inf['tier'].lower()}'>{inf['tier']}</span></td>"
+                f"<td><a href='{inf['link']}' target='_blank'>Profile</a></td>"
+                f"</tr>" for inf in INFLUENCERS.get(platform, [])
+            ])}
+            </table>
+            </div>
+            </div>
+            """, unsafe_allow_html=True)
         
         # Outreach Message Generator
         st.markdown(f"<div class='premium-card'><h3>📩 Outreach Message Generator</h3></div>", unsafe_allow_html=True)
         selected_influencer = st.selectbox(
             "Select Influencer for Outreach Message",
             [inf['name'] for inf in INFLUENCERS.get(platform, [])],
-            key='outreach_influencer')
-        if st.button("Generate Email to Influencer"):
-            # Use the campaign brief (if available) or a placeholder
+            key='outreach_influencer'
+        )
+        if st.button("Generate Email to Influencer", key="generate_email_btn"):
             try:
                 brief_md = generate_premium_brief({
                     'goal': goal,
@@ -677,7 +796,7 @@ def main():
                     'audience': audience
                 })
             except:
-                brief_md = "[Campaign Brief Here]"
+                brief_md = ""
             message = generate_outreach_message(brief_md, selected_influencer)
             st.text_area("Copy Outreach Message", message, height=300)
             b64 = base64.b64encode(message.encode()).decode()
@@ -692,5 +811,27 @@ def main():
     </div>
     """, unsafe_allow_html=True)
 
+    campaign_config = st.session_state.get('campaign_config')
+    if campaign_config and campaign_config.get('platform'):
+        st.markdown(f"<div class='premium-card'><h3>📩 Outreach Message Generator</h3></div>", unsafe_allow_html=True)
+        selected_influencer = st.selectbox(
+            "Select Influencer for Outreach Message",
+            [inf['name'] for inf in INFLUENCERS.get(campaign_config['platform'], [])],
+            key='outreach_influencer'
+        )
+        if st.button("Generate Email to Influencer", key="generate_email_btn"):
+            brief_md = generate_premium_brief({
+                'goal': campaign_config['goal'],
+                'industry': campaign_config['industry'],
+                'platform': campaign_config['platform'],
+                'content_type': campaign_config['content_type'],
+                'audience': campaign_config['audience']
+            })
+            message = generate_outreach_message(brief_md, selected_influencer)
+            st.text_area("Copy Outreach Message", message, height=300)
+            b64 = base64.b64encode(message.encode()).decode()
+            href = f'<a href="data:text/plain;base64,{b64}" download="outreach_message.txt">📥 Download as .txt</a>'
+            st.markdown(href, unsafe_allow_html=True)
+
 if __name__ == "__main__":
-    main() 
+    main()
