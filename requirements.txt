@@ -1,0 +1,10 @@
+streamlit
+plotly
+pandas
+numpy
+# pdfkit  # Uncomment if you want PDF export
+# markdown  # Uncomment if using markdown processing
+# Uncomment if using OpenAI for AI-generated briefs
+# openai
+# Uncomment if using xhtml2pdf as an alternative to pdfkit
+# xhtml2pdf 
