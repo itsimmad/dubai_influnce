@@ -778,39 +778,8 @@ def main():
             </div>
             </div>
             """, unsafe_allow_html=True)
-        
-        # Outreach Message Generator
-        st.markdown(f"<div class='premium-card'><h3>📩 Outreach Message Generator</h3></div>", unsafe_allow_html=True)
-        selected_influencer = st.selectbox(
-            "Select Influencer for Outreach Message",
-            [inf['name'] for inf in INFLUENCERS.get(platform, [])],
-            key='outreach_influencer'
-        )
-        if st.button("Generate Email to Influencer", key="generate_email_btn"):
-            try:
-                brief_md = generate_premium_brief({
-                    'goal': goal,
-                    'industry': industry,
-                    'platform': platform,
-                    'content_type': content_type,
-                    'audience': audience
-                })
-            except:
-                brief_md = ""
-            message = generate_outreach_message(brief_md, selected_influencer)
-            st.text_area("Copy Outreach Message", message, height=300)
-            b64 = base64.b64encode(message.encode()).decode()
-            href = f'<a href="data:text/plain;base64,{b64}" download="outreach_message.txt">📥 Download as .txt</a>'
-            st.markdown(href, unsafe_allow_html=True)
-    
-    # Footer
-    st.markdown("""
-    <div class="footer">
-        <p>🌟 Dubai Influencer Pro - Premium Tool for Top Brands & Agencies</p>
-        <p>© 2024 | Built for Dubai's Dynamic Influencer Marketing Landscape</p>
-    </div>
-    """, unsafe_allow_html=True)
 
+    # Outreach Message Generator (only after campaign is submitted)
     campaign_config = st.session_state.get('campaign_config')
     if campaign_config and campaign_config.get('platform'):
         st.markdown(f"<div class='premium-card'><h3>📩 Outreach Message Generator</h3></div>", unsafe_allow_html=True)
@@ -832,6 +801,16 @@ def main():
             b64 = base64.b64encode(message.encode()).decode()
             href = f'<a href="data:text/plain;base64,{b64}" download="outreach_message.txt">📥 Download as .txt</a>'
             st.markdown(href, unsafe_allow_html=True)
+
+# Footer (leave this outside the if submitted block)
+st.markdown("""
+<div class="footer">
+    <p> Kolab - Premium Tool for Top Brands & Agencies</p>
+    <p>© 2025 | Built for Dubai's Dynamic Influencer Marketing Landscape</p>
+</div>
+""", unsafe_allow_html=True)
+
+    
 
 if __name__ == "__main__":
     main()
